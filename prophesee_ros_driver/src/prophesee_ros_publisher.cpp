@@ -22,6 +22,7 @@
 PropheseeWrapperPublisher::PropheseeWrapperPublisher() :
     nh_("~"),
     biases_file_(""),
+    calibration_file_(""),
     raw_file_to_read_(""),
     activity_filter_temporal_depth_(0) {
     camera_name_ = "PropheseeCamera_optical_frame";
@@ -30,6 +31,7 @@ PropheseeWrapperPublisher::PropheseeWrapperPublisher() :
     nh_.getParam("camera_name", camera_name_);
     nh_.getParam("publish_cd", publish_cd_);
     nh_.getParam("bias_file", biases_file_);
+    nh_.getParam("instrinsics_calibration", calibration_file_);
     nh_.getParam("raw_file_to_read", raw_file_to_read_);
     nh_.getParam("activity_filter_temporal_depth", activity_filter_temporal_depth_);
 
@@ -60,6 +62,16 @@ PropheseeWrapperPublisher::PropheseeWrapperPublisher() :
     cam_info_msg_.width           = geometry.width();
     cam_info_msg_.height          = geometry.height();
     cam_info_msg_.header.frame_id = "PropheseeCamera_optical_frame";
+    
+    try {
+        if (!calibration_file_.empty()) {
+            ROS_INFO("[CONF] Loading instrinsics calibration file: %s", calibration_file_.c_str());
+            set_intrinsics_calibration_from_file(calibration_file_);
+            std::cout<<cam_info_msg_<<std::endl;
+
+
+        } 
+    } catch (Metavision::CameraException &e) { ROS_WARN("%s", e.what()); }
 
     // Set the activity filter instance
     if (activity_filter_temporal_depth_ > 0) {
@@ -96,6 +108,62 @@ bool PropheseeWrapperPublisher::openCamera() {
         camera_is_opened = true;
     } catch (Metavision::CameraException &e) { ROS_WARN("%s", e.what()); }
     return camera_is_opened;
+}
+
+bool PropheseeWrapperPublisher::set_intrinsics_calibration_from_file(std::string calibration_file_){
+    std::ifstream file;
+    file.open(calibration_file_);
+    std::string buffer;
+    std::string line;
+
+    int nr_of_open = 0;
+    while (std::getline(file, line)) {
+        if (line.size() < 1) continue;
+
+        nr_of_open += line.find("{") == -1;
+        nr_of_open -= line.find("}") == -1;
+
+        buffer += line;
+        
+        if (nr_of_open == 0){
+            json_object *obj = json_tokener_parse(buffer.c_str());
+            json_object *section;
+            if (json_object_object_get_ex(obj, "camera_matrix", &section)) {
+                
+                json_object *uri;
+                json_object_object_get_ex(section, "data", &uri);
+                for (int i = 0; i < 9; i++) {
+                    json_object *nr = json_object_array_get_idx(uri, i);
+                    double number = json_object_get_double(nr);
+                    cam_info_msg_.K[i] = number; 
+                }
+            }
+            cam_info_msg_.D = {0,0,0,0,0};
+            if (json_object_object_get_ex(obj, "distortion_coefficients", &section)) {
+                
+                json_object *uri;
+                json_object_object_get_ex(section, "data", &uri);
+                for (int i = 0; i < 5; i++) {
+                    json_object *nr = json_object_array_get_idx(uri, i);
+                    double number = json_object_get_double(nr);
+                    cam_info_msg_.D[i] = number; 
+                }
+            }
+        }
+        
+    }
+    file.close();
+   
+    cam_info_msg_.P = {
+        cam_info_msg_.K[0], cam_info_msg_.K[1], cam_info_msg_.K[2], 0,
+        cam_info_msg_.K[3], cam_info_msg_.K[4], cam_info_msg_.K[5], 0,
+        cam_info_msg_.K[6], cam_info_msg_.K[7], cam_info_msg_.K[8], 0};
+
+    cam_info_msg_.R = {1,0,0,
+                       0,1,0,
+                       0,0,1};
+
+    return true;
 }
 
 void PropheseeWrapperPublisher::startPublishing() {
@@ -160,6 +228,7 @@ void PropheseeWrapperPublisher::publishCDEvents() {
 
                     // Sensor geometry in header of the message
                     event_buffer_msg.header.stamp = event_buffer_current_time_;
+                    event_buffer_msg.header.frame_id = "PropheseeCamera_optical_frame";
                     event_buffer_msg.height       = camera_.geometry().height();
                     event_buffer_msg.width        = camera_.geometry().width();
 

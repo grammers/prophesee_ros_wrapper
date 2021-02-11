@@ -12,6 +12,9 @@
 #include <metavision/sdk/driver/camera.h>
 #include <metavision/sdk/cv/algorithms/activity_noise_filter_algorithm.h>
 
+#include <json-c/json.h>
+#include <fstream>
+
 /// \brief Main class for ROS publisher
 ///
 /// Publishes data from Prophesee sensor to ROS topics
@@ -29,6 +32,9 @@ public:
 private:
     /// \brief Opens the camera
     bool openCamera();
+
+    /// \breief set intrinsics calibration form yamel file to cam_info_msgs_
+    bool  set_intrinsics_calibration_from_file(std::string calibration_file_);
 
     /// \brief Publishes CD events
     void publishCDEvents();
@@ -60,6 +66,9 @@ private:
 
     /// \brief Path to the file with the camera settings (biases)
     std::string biases_file_;
+
+    /// \brife Path to the file wiht the intrinsics camera calibration
+    std::string calibration_file_;
 
     /// \brief Raw file to read instead of live camera
     std::string raw_file_to_read_;

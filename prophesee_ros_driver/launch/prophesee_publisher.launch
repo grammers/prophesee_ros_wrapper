@@ -7,6 +7,9 @@
     <!-- Path to the file with the camera settings -->
     <param name="bias_file" value=""/>
 
+    <!-- Path to the file wiht the intrinsics calibration -->
+    <param name="instrinsics_calibration" value=""/>
+
     <!-- Instead of live camera, you can read data offline from raw file -->
     <param name="raw_file_to_read" value="" />
 

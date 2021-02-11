@@ -57,6 +57,7 @@ target_link_libraries(
     prophesee_ros_publisher
     metavision_sdk_driver
     ${catkin_LIBRARIES}
+    json-c
 )
 
 add_dependencies(
@@ -74,6 +75,7 @@ add_executable(prophesee_ros_viewer
 target_link_libraries(
     prophesee_ros_viewer
     metavision_sdk_driver
+    json-c
     ${catkin_LIBRARIES}
 )
 
