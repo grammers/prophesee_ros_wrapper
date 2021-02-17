@@ -61,7 +61,7 @@ PropheseeWrapperPublisher::PropheseeWrapperPublisher() :
     // Publish camera info message
     cam_info_msg_.width           = geometry.width();
     cam_info_msg_.height          = geometry.height();
-    cam_info_msg_.header.frame_id = "PropheseeCamera_optical_frame";
+    cam_info_msg_.header.frame_id = camera_name_;
     
     try {
         if (!calibration_file_.empty()) {
@@ -228,7 +228,7 @@ void PropheseeWrapperPublisher::publishCDEvents() {
 
                     // Sensor geometry in header of the message
                     event_buffer_msg.header.stamp = event_buffer_current_time_;
-                    event_buffer_msg.header.frame_id = "PropheseeCamera_optical_frame";
+                    event_buffer_msg.header.frame_id = camera_name_;
                     event_buffer_msg.height       = camera_.geometry().height();
                     event_buffer_msg.width        = camera_.geometry().width();
 

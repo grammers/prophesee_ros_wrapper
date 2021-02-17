@@ -16,6 +16,8 @@
     <!-- Activity filter temporal depth in microseconds -->
     <param name="activity_filter_temporal_depth" value="0" />
 
+    <param name="camera_name_" value="PropheseeCamera_optical_frame"
+
   </node>
 
 </launch>
